@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useSession, signOut } from 'next-auth/react';
@@ -21,15 +21,20 @@ import { User, Settings, Info, Trophy, ExternalLink, Volume2, VolumeX, Maximize2
 import { AdBanner } from '@/components/ui/ad-banner';
 import { TileLogoIcon, SinglePlayerIcon, MultiplayerIcon, GuideIcon } from '@/components/icons/mahjong';
 import { useAudio } from '@/hooks/use-audio';
+import { BACKGROUND_COLORS, pickNextBackgroundColor, type BackgroundState } from '@/lib/background-colors';
 
 type GameMode = 'menu' | 'single' | 'cpu' | 'multiplayer-lobby' | 'multiplayer-game';
 
+interface BackgroundStyle extends CSSProperties {
+  '--background': string;
+}
 
 
 export default function MahjongPuzzleGame() {
   const router = useRouter();
   const { data: session } = useSession();
   const [gameMode, setGameMode] = useState<GameMode>('menu');
+  const [backgroundState, setBackgroundState] = useState<BackgroundState>({ colorId: 'coffee' });
   const [showYakuGuide, setShowYakuGuide] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [gameResult, setGameResult] = useState<GameResultData | null>(null);
@@ -61,6 +66,11 @@ export default function MahjongPuzzleGame() {
       stopBgm();
     }
     setGameMode(mode);
+  };
+
+  const handleBackgroundColorChange = () => {
+    playClick();
+    setBackgroundState({ colorId: pickNextBackgroundColor(backgroundState.colorId) });
   };
 
   // Ensure BGM stops when returning to menu or lobby via any state change
@@ -136,14 +146,18 @@ export default function MahjongPuzzleGame() {
     (multiplayerStatus === 'spectating' && matchSnapshot !== null) ||
     lastGameOver !== null;
 
+  const backgroundStyle: BackgroundStyle = {
+    '--background': BACKGROUND_COLORS[backgroundState.colorId],
+  };
+
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden p-4 md:p-8">
+    <main className="min-h-screen bg-background relative overflow-hidden p-4 md:p-8" style={backgroundStyle}>
       {/* ポップなドットパターンの背景 */}
       <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
            style={{ backgroundImage: 'radial-gradient(circle at center, currentColor 2px, transparent 2px)', backgroundSize: '32px 32px' }} />
       
-      {/* Audio & Settings Control Panel */}
-      <div className="absolute top-4 left-4 z-50 flex items-center gap-1.5 bg-card/85 backdrop-blur-md px-2 py-1.5 rounded-full border shadow-sm">
+      {/* Audio, Settings & Background Control Panel */}
+      <div className="absolute top-4 left-3 sm:left-4 z-50 flex items-center gap-1 sm:gap-1.5 bg-card/85 backdrop-blur-md px-1 sm:px-2 py-1.5 rounded-full border shadow-sm">
         <Button
           variant="ghost"
           size="icon"
@@ -179,6 +193,20 @@ export default function MahjongPuzzleGame() {
           title="遊び方"
         >
           🔰
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="rounded-full px-1.5 text-xs sm:px-3 sm:text-sm"
+          title="背景の色をランダムに切り替える"
+          onClick={(event) => {
+            handleBackgroundColorChange();
+            if (event.detail > 0) event.currentTarget.blur();
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          色切り替え
         </Button>
       </div>
 
@@ -392,7 +420,7 @@ export default function MahjongPuzzleGame() {
         )}
 
         {(gameMode === 'single' || gameMode === 'cpu' || showMultiplayerMatch) && (
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed top-4 right-3 sm:right-4 z-50">
             <Button
               variant="ghost"
               size="sm"
@@ -407,7 +435,7 @@ export default function MahjongPuzzleGame() {
                 }
                 setGameMode('menu');
               }}
-              className="opacity-60 hover:opacity-100"
+              className="opacity-60 hover:opacity-100 px-2 text-xs sm:px-3 sm:text-sm"
             >
               メニューへ戻る
             </Button>
